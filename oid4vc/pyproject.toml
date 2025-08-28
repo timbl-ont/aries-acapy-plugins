@@ -44,7 +44,7 @@ filelock = "^3.18.0"
 [tool.poetry.extras]
 aca-py = ["acapy-agent"]
 mso_mdoc = ["cbor2", "cbor-diag", "cwt", "pycose"]
-sd_jwt = ["jsonpointer"]
+sd_jwt_vc = ["jsonpointer"]
 
 [tool.poetry.group.dev.dependencies]
 ruff = "0.11.4"
