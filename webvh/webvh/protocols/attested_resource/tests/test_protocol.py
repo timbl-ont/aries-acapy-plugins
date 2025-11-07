@@ -36,7 +36,7 @@ class TestAttestedResourceProtocol(IsolatedAsyncioTestCase):
         self.profile = await create_test_profile({"wallet.type": "askar-anoncreds"})
         self.profile.settings.set_value(
             "plugin_config",
-            {"did-webvh": {"server_url": "https://example.com"}},
+            {"webvh": {"server_url": "https://example.com"}},
         )
         self.profile.context.injector.bind_instance(
             BaseResponder, mock.AsyncMock(BaseResponder, autospec=True)
@@ -92,10 +92,11 @@ class TestAttestedResourceProtocol(IsolatedAsyncioTestCase):
     async def test_handler(self):
         self.profile.settings.set_value(
             "plugin_config",
-            {"did-webvh": {"server_url": "https://example.com", "auto_attest": False}},
+            {"webvh": {"server_url": "https://example.com", "auto_attest": False}},
         )
         context = RequestContext(self.profile)
-        context.message = WitnessRequest(document=TEST_RECORD)
+        request_id = str(uuid.uuid4())
+        context.message = WitnessRequest(document=TEST_RECORD, request_id=request_id)
         context.connection_record = ConnRecord(
             alias=f"webvh:{TEST_DOMAIN}@witness",
             state="active",
@@ -111,6 +112,7 @@ class TestAttestedResourceProtocol(IsolatedAsyncioTestCase):
             state=WitnessingState.SUCCESS.value,
             document=TEST_RECORD,
             witness_proof=witness_proof,
+            request_id=request_id,
         )
         assert await WitnessResponseHandler().handle(
             context, mock.AsyncMock(BaseResponder, autospec=True)

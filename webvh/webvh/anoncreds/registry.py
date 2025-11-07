@@ -65,7 +65,7 @@ from ..did.utils import add_proof
 LOGGER = logging.getLogger(__name__)
 
 # NOTE, temporary context location
-ATTESTED_RESOURCE_CTX = "https://opsecid.github.io/attested-resource/v1"
+ATTESTED_RESOURCE_CTX = "https://identity.foundation/did-attested-resources/context/v0.1"
 
 PENDING_MESSAGE = {
     "status": WitnessingState.PENDING.value,
@@ -598,8 +598,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
 
         config = await get_plugin_config(profile)
         scid = issuer.split(":")[2]
-        namespace = issuer.split(":")[4]
-        identifier = issuer.split(":")[5]
+        server = WebVHServerClient(profile)
         if config.get("endorsement", False):
             # Request witness approval
             witness = WitnessManager(profile)
@@ -614,6 +613,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                     pass
 
                 try:
+                    LOGGER.info(witness_request_id)
                     await PendingAttestedResourceRecord().set_pending_record_id(
                         profile, witness_request_id
                     )
@@ -625,13 +625,9 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                     pass
             else:
                 # Upload resource to server
-                await WebVHServerClient(profile).upload_attested_resource(
-                    namespace, identifier, endorsed_resource
-                )
+                await server.upload_attested_resource(endorsed_resource)
         else:
             # Upload resource to server
-            await WebVHServerClient(profile).upload_attested_resource(
-                namespace, identifier, secured_resource
-            )
+            await server.upload_attested_resource(secured_resource)
 
         return secured_resource
