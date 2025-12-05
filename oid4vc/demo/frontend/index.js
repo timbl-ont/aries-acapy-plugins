@@ -75,9 +75,10 @@ const API_KEY = process.env.API_KEY;
 let jwtVcSupportedCredCreated = false;
 let sdJwtSupportedCredCreated = false;
 let mdocSupportedCredCreated = false;
+let sdJwtStatusListCreated = false;
+let jwtStatusListCreated = false;
 let jwtVcSupportedCredID = "";
 let sdJwtSupportedCredID = "";
-let statusListCreated = false;
 let mdocSupportedCredID = "";
 
 
@@ -234,13 +235,13 @@ async function issue_jwt_credential(req, res) {
     })
   };
 
-  if (!statusListCreated){
+  if (!jwtStatusListCreated){
     events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Posting Create Status List Request to: ${statusListCreateUrl}`});
     events.emit(`issuance-${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: statusListCreateOptions});
     const statusListResponse = await fetchApiData(statusListCreateUrl, statusListCreateOptions);
-    const { status_list_id } = statusListResponse.id;
-    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Created Status List ID: ${status_list_id}`});
-    statusListCreated = true;
+    const { id } = statusListResponse;
+    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Created Status List ID: ${id}`});
+    jwtStatusListCreated = true;
   };
 
   // Create Credential Exchange records
@@ -822,189 +823,6 @@ async function create_jwt_vc_presentation(req, res) {
 
   // Polling for the credential is an option at this stage, but we opt to just listen for the appropriate webhook instead
 }
-
-// Begin JWT VC Multi credential JSON Presentation Flow
-async function create_jwt_vc_presentation_multi(req, res) {
-  const presentationId = req.params.id;
-  const commonHeaders = {
-    accept: "application/json",
-    "Content-Type": "application/json",
-    "Authorization": "Bearer " + token.token,
-  };
-  if (API_KEY) {
-    commonHeaders["X-API-KEY"] =  API_KEY;
-  }
-  axios.defaults.withCredentials = true;
-  axios.defaults.headers.common["Access-Control-Allow-Origin"] = API_BASE_URL;
-  axios.defaults.headers.common["X-API-KEY"] = API_KEY;
-  axios.defaults.headers.common["Authorization"] = "Bearer " + token.token;
-
-
-  const fetchApiData = async (url, options) => {
-    const response = await fetch(url, options);
-    return await response.json();
-  };
-
-
-  // Create Presentation Definition
-  events.emit(`presentation-${presentationId}`, {type: "message", message: "Creating Presentation Definition."});
-  const presentationDefinition = {"pres_def": {
-    "id": uuidv4(),
-   /* "submission_requirements": [
-      {
-        "name": "jwt",
-        "purpose": "University credentials",
-        "count": 1,
-        "rule": "all",
-        "from": "A"
-      },
-      {
-        "name": "jwt1",
-        "purpose": "ID Card",
-        "count": 1,
-        "rule": "all",
-        "from": "B"
-      }
-    ],*/
-    "purpose": "Test multi-credential presentation",
-    
-    "format": {
-      "jwt_vc_json": {
-        "alg": [
-          "ES256"
-        ]
-      },
-      "jwt_vp_json": {
-        "alg": [
-          "ES256"
-        ]
-      },
-      "jwt_vc": {
-        "alg": [
-          "ES256"
-        ]
-      },
-      "jwt_vp": {
-        "alg": [
-          "ES256"
-        ]
-      }
-    },
-    "input_descriptors": [
-      {
-        "id": "4ce7aff1-0234-4f35-9d21-251668a60950",
-        "name": "University Credential",
-        "purpose": "Get first name",
-        "constraints": {
-          "fields": [
-            {
-              "name": "name",
-              "path": [
-                "$.vc.credentialSubject.first_name",
-                "$.credentialSubject.first_name"
-              ],
-              "filter": {
-                "type": "string",
-                "pattern": "^.{1,64}$"
-              }
-            },
-          ]
-        }
-      },
-      {
-        "id": "4ce7aff1-0234-4f35-9d21-251668a60951",
-        "name": "Student ID Card",
-        "purpose": "Get school",
-        "constraints": {
-          "fields": [
-              {
-              "name": "School",
-              "path": [
-                "$.vc.credentialSubject.school",
-                "$.credentialSubject.school"
-              ],
-              "filter": {
-                "type": "string",
-                "pattern": "^.{1,64}$"
-              }
-            }
-          ]
-        }
-      }
-    ]
-  }
-  };
-
-  const presentationDefinitionUrl = `${API_BASE_URL}/oid4vp/presentation-definition`;
-  const presentationDefinitionOptions = {
-    method: "POST",
-    headers: commonHeaders,
-    body: JSON.stringify(presentationDefinition),
-  };
-  logger.warn(presentationDefinitionUrl);
-  events.emit(`presentation-${presentationId}`, {type: "message", message: `Posting Presentation Definition to: ${presentationDefinitionUrl}`});
-  events.emit(`presentation-${presentationId}`, {type: "debug-message", message: "Request options", data: presentationDefinitionOptions});
-  const presentationDefinitionData = await fetchApiData(
-    presentationDefinitionUrl,
-    presentationDefinitionOptions
-  );
-  logger.info("Created presentation?");
-  logger.trace(JSON.stringify(presentationDefinitionData));
-  logger.trace(presentationDefinitionData.pres_def_id);
-  events.emit(`presentation-${presentationId}`, {type: "message", message: `Created Presentation Definition`});
-  events.emit(`presentation-${presentationId}`, {type: "message", message: `Presentation Definition ID: ${presentationDefinitionData.pres_def_id}`});
-  events.emit(`presentation-${presentationId}`, {type: "debug-message", message: "Response data", data: presentationDefinitionData});
-
-
-  // Create Presentation Request
-  const presentationRequestUrl = `${API_BASE_URL}/oid4vp/request`;
-  const presentationRequestOptions = {
-    method: "POST",
-    headers: commonHeaders,
-    body: JSON.stringify({
-      "pres_def_id": presentationDefinitionData.pres_def_id,
-      "vp_formats": {
-        "jwt_vc": { "alg": [ "ES256", "EdDSA" ] },
-        "jwt_vp": { "alg": [ "ES256", "EdDSA" ] },
-        "jwt_vc_json": { "alg": [ "ES256", "EdDSA" ] },
-        "jwt_vp_json": { "alg": [ "ES256", "EdDSA" ] }
-      },
-    }),
-  };
-  events.emit(`presentation-${presentationId}`, {type: "message", message: `Generating Presentation Request.`});
-  events.emit(`presentation-${presentationId}`, {type: "message", message: `Posting Presentation Request to: ${presentationRequestUrl}`});
-  events.emit(`presentation-${presentationId}`, {type: "debug-message", message: "Request options", data: presentationRequestOptions});
-  const presentationRequestData = await fetchApiData(
-    presentationRequestUrl,
-    presentationRequestOptions
-  );
-  events.emit(`presentation-${presentationId}`, {type: "message", message: `Generated Presentation Request.`});
-  events.emit(`presentation-${presentationId}`, {type: "message", message: `Presentation Request URI: ${presentationRequestData?.request_uri}`});
-  events.emit(`presentation-${presentationId}`, {type: "debug-message", message: "Response data", data: presentationRequestData});
-
-  // Grab the relevant data and store it for later reference while waiting for the webhooks from ACA-Py
-  let code = presentationRequestData.request_uri;
-  presentationCache.set(presentationDefinitionData.pres_def_id, { presentationDefinitionData, presentationRequestData, presentationId: presentationId });
-  logger.trace(JSON.stringify(presentationRequestData, null, 2));
-
-  // Generate a QRCode and return it to the browser (HTMX replaces a div with our current response)
-  var qrcode = new QRCode({
-    content: code,
-    padding: 4,
-    width: 256,
-    height: 256,
-    color: "#000000",
-    background: "#ffffff",
-    ecl: "M",
-  });
-  qrcode = qrcode.svg()
-  qrcode = qrcode.substring(qrcode.indexOf('?>')+2,qrcode.length)
-  res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.send(qrcode);
-
-  // Polling for the credential is an option at this stage, but we opt to just listen for the appropriate webhook instead
-}
-
 
 // Begin SD-JWT Presentation Flow
 async function create_sd_jwt_presentation(req, res) {
