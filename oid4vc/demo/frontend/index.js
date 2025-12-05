@@ -187,41 +187,7 @@ async function issue_jwt_credential(req, res) {
     jwtVcSupportedCredCreated = true;
   }
 
-  // Create bitstring status list Configuration
-  const statusListCreateUrl = `${API_BASE_URL}/status-list/defs`;
-  const statusListCreateOptions = {
-    method: "POST",
-    headers: commonHeaders,
-    body: JSON.stringify({
-      list_size: 131072,
-      list_type: "w3c",
-      shard_size: 131072,
-      status_message: [
-        {
-            status: "0x00",
-            message: "active"
-        },
-        {
-            status: "0x01",
-            message: "inactive"
-        },
-    ],
-    status_purpose: "revocation",
-    status_size: 1,
-    supported_cred_id: jwtVcSupportedCredID
-    })
-  };
-
-  if (!statusListCreated){
-    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Posting Create Status List Request to: ${statusListCreateUrl}`});
-    events.emit(`issuance-${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: statusListCreateOptions});
-    const statusListResponse = await fetchApiData(statusListCreateUrl, statusListCreateOptions);
-    const { status_list_id } = statusListResponse.id;
-    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Created Status List ID: ${status_list_id}`});
-    statusListCreated = true;
-  };
-
-  // Create DID for issuance
+  // Create DID for issuance and status list
   const createDidUrl = `${API_BASE_URL}/did/jwk/create`;
   const createDidOptions = {
     method: "POST",
@@ -240,6 +206,42 @@ async function issue_jwt_credential(req, res) {
   logger.info(did);
   logger.info(jwtVcSupportedCredID);
 
+
+  // Create bitstring status list Configuration
+  const statusListCreateUrl = `${API_BASE_URL}/status-list/defs`;
+  const statusListCreateOptions = {
+    method: "POST",
+    headers: commonHeaders,
+    body: JSON.stringify({
+      issuer_did: did,
+      list_size: 131072,
+      list_type: "w3c",
+      shard_size: 131072,
+      status_message: [
+        {
+            status: "0x00",
+            message: "active"
+        },
+        {
+            status: "0x01",
+            message: "inactive"
+        },
+    ],
+    status_purpose: "revocation",
+    status_size: 1,
+    supported_cred_id: jwtVcSupportedCredID,
+    verification_method: did+"#0"
+    })
+  };
+
+  if (!statusListCreated){
+    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Posting Create Status List Request to: ${statusListCreateUrl}`});
+    events.emit(`issuance-${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: statusListCreateOptions});
+    const statusListResponse = await fetchApiData(statusListCreateUrl, statusListCreateOptions);
+    const { status_list_id } = statusListResponse.id;
+    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Created Status List ID: ${status_list_id}`});
+    statusListCreated = true;
+  };
 
   // Create Credential Exchange records
   const exchangeCreateUrl = `${API_BASE_URL}/oid4vci/exchange/create`;
