@@ -565,14 +565,22 @@ async function issue_mdoc_credential(req, res) {
           locale: "en-US",
           background_image: {
             uri: "data:image/png;base64,iVBORw0KGgoAAAANS",
-            alt_text: "Driver's License Background",
+            alt_text: "Driver's License Background"
           }
         }
-      ],
+      ], 
+      id: "org.iso.18013.5.1.mDL",
       format_data: {
         doctype: "org.iso.18013.5.1.mDL",
-      }, 
-      id: "DriversLicense",
+        "proof_types_supported": {
+          "jwt": {
+            "proof_signing_alg_values_supported": [
+              "ES256",
+              "EdDSA"
+            ]
+          }
+        },
+      }
     }),
   };
 
@@ -663,7 +671,7 @@ async function issue_mdoc_credential(req, res) {
   logger.info(exchangeId);
   events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Sending offer to user: ${qrcode}`});
   events.emit(`issuance-${req.body.registrationId}`, {type: "qrcode", credentialOffer, exchangeId, qrcode});
-  exchangeCache.set(exchangeId, { exchangeId, credentialOffer, supportedCredId, registrationId: req.body.registrationId });
+  exchangeCache.set(exchangeId, { exchangeId, credentialOffer, mdocSupportedCredID, registrationId: req.body.registrationId });
 
   events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Begin listening for credential to be issued."});
 }

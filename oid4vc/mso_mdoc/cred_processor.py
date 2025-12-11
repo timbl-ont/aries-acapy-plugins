@@ -28,14 +28,15 @@ class MsoMdocCredProcessor(Issuer):
         pop: PopResult,
         context: AdminRequestContext,
     ):
+        LOGGER.debug("supported credential: %s", supported)
         """Return signed credential in COBR format."""
-        assert supported.format_data
-        if body.get("doctype") != supported.format_data.get("doctype"):
+        assert supported.doctype
+        if body.get("doctype") != supported.doctype:
             raise CredProcessorError("Requested doctype does not match offer.")
 
         try:
             headers = {
-                "doctype": supported.format_data.get("doctype"),
+                "doctype": supported.doctype,
                 "deviceKey": re.sub(
                     "did:(.+?):(.+?)#(.*)",
                     "\\2",

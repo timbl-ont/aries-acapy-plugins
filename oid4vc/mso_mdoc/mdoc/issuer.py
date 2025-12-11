@@ -116,27 +116,32 @@ def mdoc_sign(jwk: dict, headers: Mapping[str, Any], payload: Mapping[str, Any])
         issuer_auth = mso.encode()
         issuer_auth = cbor2.loads(issuer_auth).value
         issuer_auth[2] = cbor2.dumps(cbor2.CBORTag(24, issuer_auth[2]))
-        document = {
-            "docType": doctype,
-            "issuerSigned": {
-                "nameSpaces": {
-                    ns: [cbor2.CBORTag(24, cbor2.dumps(v)) for k, v in dgst.items()]
-                    for ns, dgst in msoi.disclosure_map.items()
-                },
-                "issuerAuth": issuer_auth,
-            },
+       # document = {
+        #    "docType": doctype,
+        #    "issuerSigned": {
+        #        "nameSpaces": {
+        #            ns: [cbor2.CBORTag(24, cbor2.dumps(v)) for k, v in dgst.items()]
+        #            for ns, dgst in msoi.disclosure_map.items()
+        #        },
+        #        "issuerAuth": issuer_auth,
+        #    },
             # this is required during the presentation.
             #  'deviceSigned': {
             #  # TODO
             #  }
-        }
-        documents.append(document)
+        #}
+        #documents.append(document)
 
     signed = {
-        "version": "1.0",
-        "documents": documents,
-        "status": 0,
+    #    "version": "1.0",
+         "nameSpaces": {
+            ns: [cbor2.CBORTag(24, cbor2.dumps(v)) for k, v in dgst.items()]
+                for ns, dgst in msoi.disclosure_map.items()
+            },
+         "issuerAuth": issuer_auth,
+    #    "status": 0,
     }
+    LOGGER.info(f"signed mso_mdoc dict: {signed}")
     signed_hex = hexlify(cbor2.dumps(signed))
-
+    LOGGER.info(f"signed mso_mdoc: {signed_hex}")
     return f"{signed_hex}"

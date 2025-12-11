@@ -106,8 +106,8 @@ class MsoIssuer:
         mso = Sign1Message(
             phdr={
                 Algorithm: self.private_key.alg,
-                KID: self.private_key.kid,
-                33: self.x509_cert,
+               # KID: self.private_key.kid,
+               # 33: self.x509_cert,
             },
             # TODO: x509 (cbor2.CBORTag(33)) and federation trust_chain support
             # (cbor2.CBORTag(27?)) here
