@@ -667,8 +667,7 @@ async function issue_mdoc_credential(req, res) {
       proof_types_supported: {
         jwt: {
           proof_signing_alg_values_supported: [
-            "ES256",
-            "EdDSA"
+            "ES256"
           ]
         }
       },
